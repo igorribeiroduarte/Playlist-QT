@@ -1,13 +1,7 @@
 #include "spotify.h"
 
-#include <QOAuth2AuthorizationCodeFlow>
 #include <QDesktopServices>
 #include <QCryptographicHash>
-#include <QOAuthHttpServerReplyHandler>
-#include <QAbstractOAuth>
-#include <QNetworkRequest>
-#include <QNetworkReply>
-#include <cstdlib>
 
 std::string Spotify::RandStr(uint32_t size)
 {
@@ -25,9 +19,9 @@ std::string Spotify::RandStr(uint32_t size)
     return ret;
 }
 
-Spotify::Spotify()
+Spotify::Spotify(QObject *)
 {
-    QOAuth2AuthorizationCodeFlow auth;
+    _reply_handler = new QOAuthHttpServerReplyHandler(_port);
 
     /* The code verifier is a cryptographically random string between 43 and 128 characters in length  */
     const uint8_t min_str_size = 43;
@@ -37,28 +31,50 @@ Spotify::Spotify()
     QCryptographicHash code_verifier_hash(QCryptographicHash::Sha256);
     code_verifier_hash.addData(code_verifier.c_str(), code_verifier.size());
 
-    const std::string auth_uri = "https://accounts.spotify.com/authorize";
+    const QByteArray code_challenge = code_verifier_hash.result().toBase64(QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals);
 
-    const std::string client_id = "e78f9888d48b49668abcc484afc5edab";
-    const std::string access_token_uri = "https://accounts.spotify.com/api/token";
-    const std::string code_challenge_method = "S256";
-    const std::string code_challenge = std::to_string(code_verifier_hash.result().Base64UrlEncoding);
+    qInfo() << "Code Challenge: " << code_challenge;
 
-    const auto port = static_cast<quint16>(8080);
+    _auth.setAuthorizationUrl(_auth_uri);
+    _auth.setAccessTokenUrl(_access_token_uri);
+    _auth.setClientIdentifier(_client_id);
+    _auth.setScope("user-read-private");
 
-    auth.setAuthorizationUrl(QString::fromStdString(auth_uri));
-    auth.setAccessTokenUrl(QString::fromStdString(access_token_uri));
-    auth.setClientIdentifier(QString::fromStdString(client_id));
-    auth.setClientIdentifierSharedKey(QString::fromStdString(code_challenge));
+    _auth.setReplyHandler(_reply_handler);
 
-    QOAuthHttpServerReplyHandler *reply_handler = new QOAuthHttpServerReplyHandler(port);
-    auth.setReplyHandler(reply_handler);
+    QObject::connect(&_auth, &QOAuth2AuthorizationCodeFlow::authorizeWithBrowser, QDesktopServices::openUrl);
+    QObject::connect(&_auth, &QOAuth2AuthorizationCodeFlow::granted, this, &Spotify::granted);
 
-    QObject::connect(&auth, &QOAuth2AuthorizationCodeFlow::authorizeWithBrowser, QDesktopServices::openUrl);
+    qInfo() << "Callback: " << _reply_handler->callback();
 
-    qInfo() << "Callback: " << reply_handler->callback();
+    _auth.setModifyParametersFunction([this, code_verifier, code_challenge](QAbstractOAuth::Stage stage, QVariantMap* parameters) {
+            if (stage == QAbstractOAuth::Stage::RequestingAccessToken)
+            {
+                if (parameters->toStdMap().find("code") != parameters->toStdMap().end()) {
+                    qInfo() << "Requesting acess token";
 
-    auth.grant();
+                    parameters->insert("code_verifier", QByteArray::fromStdString(code_verifier));
+                }
+            }
+            if (stage == QAbstractOAuth::Stage::RequestingAuthorization) {
+                qInfo() << "Requesting authorization";
 
-    /* TODO: Check status code */
+                parameters->insert("code_challenge_method", this->_code_challenge_method);
+                parameters->insert("code_challenge", code_challenge);
+            }
+        });
+
+    _auth.grant();
+
+    /* TODO: Handle errors */
+}
+
+Spotify::~Spotify()
+{
+    delete _reply_handler;
+}
+
+void Spotify::granted()
+{
+    qInfo() << "Granted";
 }

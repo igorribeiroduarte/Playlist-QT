@@ -45,7 +45,7 @@
      </item>
     </layout>
    </item>
-   <item row="1" column="0" colspan="2">
+   <item row="2" column="0" colspan="2">
     <layout class="QHBoxLayout" name="horizontal_layout">
      <property name="bottomMargin">
       <number>0</number>
@@ -70,6 +70,40 @@
        </property>
        <item>
         <widget class="QListWidget" name="right_widget"/>
+       </item>
+      </layout>
+     </item>
+    </layout>
+   </item>
+   <item row="1" column="0" colspan="2">
+    <layout class="QVBoxLayout" name="verticalLayout">
+     <property name="rightMargin">
+      <number>0</number>
+     </property>
+     <property name="bottomMargin">
+      <number>0</number>
+     </property>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout">
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
+       <item>
+        <widget class="QCommandLinkButton" name="add_playlist_button">
+         <property name="text">
+          <string>Add Playlist</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCommandLinkButton" name="remove_playlist_button">
+         <property name="text">
+          <string>Remove Playlist</string>
+         </property>
+        </widget>
        </item>
       </layout>
      </item>

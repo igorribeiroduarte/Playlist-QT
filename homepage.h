@@ -1,8 +1,11 @@
 #ifndef HOMEPAGE_H
 #define HOMEPAGE_H
 
+#include "playlistmodel.h"
+
 #include <QWidget>
 #include <QListWidgetItem>
+#include <QMediaPlayer>
 
 namespace Ui {
 class HomePage;
@@ -18,11 +21,24 @@ public:
 
 private:
     Ui::HomePage *ui;
-    void populate_playlist_widget();
+
+    QMediaPlayer _player;
+
+    /* FIXME: Temp var. Remove it after adding database */
+    std::vector<PlaylistModel> playlists;
+
+
+    std::shared_ptr<int> _selected_playlist_id;
+    std::shared_ptr<int> _selected_song_id;
+
+    void populate_left_widget();
+    void populate_right_widget(int selected_playlist);
+    void play_song(TrackModel track);
 
 private slots:
-    void get_playlist(QListWidgetItem *item);
     void open_search_track_page(bool checked);
+    void set_selected_playlist(QListWidgetItem *item);
+    void set_selected_song(QListWidgetItem *item);
 };
 
 #endif // HOMEPAGE_H

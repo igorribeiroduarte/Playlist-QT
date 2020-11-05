@@ -93,7 +93,6 @@ std::vector<PlaylistModel> DatabaseUtil::get_playlists()
 
     while (q.next()) {
         playlists.push_back(PlaylistModel(q));
-        qInfo() << "Playlist criada: " << playlists.back().id();
     }
 
     return playlists;

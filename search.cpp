@@ -19,7 +19,6 @@ Search::Search(std::shared_ptr<PlaylistModel> playlist, QWidget *parent) :
         if (ui->listWidget->currentItem() != nullptr) {
             TrackModel track(ui->listWidget->currentItem()->text(), ui->listWidget->currentItem()->data(Qt::UserRole).value<QUrl>(), playlist->id());
             DatabaseUtil::add_track(track);
-            qInfo() << ui->listWidget->currentItem()->text();
         }
     });
 

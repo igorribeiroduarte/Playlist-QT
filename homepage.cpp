@@ -2,7 +2,6 @@
 #include "ui_homepage.h"
 #include "playlistmodel.h"
 #include "search.h"
-#include "spotify.h"
 #include "player.h"
 #include "createplaylist.h"
 
@@ -22,8 +21,6 @@ HomePage::HomePage(QWidget *parent) :
     ui(new Ui::HomePage)
 {
     ui->setupUi(this);
-
-    Spotify::get_instance();
 
     ui->horizontal_layout->setStretchFactor(ui->left_vertical_layout, 1);
     ui->horizontal_layout->setStretchFactor(ui->right_vertical_layout, 4);
@@ -50,12 +47,25 @@ void HomePage::remove_track(bool)
 
     _selected_song_id = nullptr;
 
-    populate_right_widget(*_selected_playlist_id);
+    Player::stop_song();
+
+    if (_selected_playlist_id) {
+        populate_right_widget(*_selected_playlist_id);
+    }
 }
 
 void HomePage::remove_playlist(bool)
 {
     if (_selected_playlist_id) {
+        if (_selected_song_id) {
+            std::shared_ptr<TrackModel> current_track = DatabaseUtil::get_instance().get_track(*_selected_song_id);
+            if (current_track != nullptr && *_selected_playlist_id == current_track->playlist_id()) {
+                Player::stop_song();
+
+                ui->right_widget->clear();
+            }
+        }
+
         DatabaseUtil::get_instance().delete_playlist(*_selected_playlist_id);
     }
 
@@ -128,7 +138,6 @@ void HomePage::open_create_playlist_page(bool)
 void HomePage::open_search_track_page(bool)
 {
     if (_selected_playlist_id) {
-        /* FIXME: Spotify class should be static */
         std::shared_ptr<PlaylistModel> playlist = DatabaseUtil::get_instance().get_playlist(*_selected_playlist_id);
 
         qInfo("first");

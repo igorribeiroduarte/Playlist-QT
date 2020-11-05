@@ -1,4 +1,4 @@
-QT       += core gui network networkauth multimedia
+QT       += core gui network networkauth multimedia sql
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -9,16 +9,30 @@ CONFIG += c++11
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    createplaylist.cpp \
+    databaseutil.cpp \
+    homepage.cpp \
     main.cpp \
-    playlist.cpp \
-    spotify.cpp
+    player.cpp \
+    playlistmodel.cpp \
+    search.cpp \
+    spotify.cpp \
+    trackmodel.cpp
 
 HEADERS += \
-    playlist.h \
-    spotify.h
+    createplaylist.h \
+    databaseutil.h \
+    homepage.h \
+    player.h \
+    playlistmodel.h \
+    search.h \
+    spotify.h \
+    trackmodel.h
 
 FORMS += \
-    playlist.ui
+    createplaylist.ui \
+    homepage.ui \
+    search.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

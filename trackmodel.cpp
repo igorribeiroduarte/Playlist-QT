@@ -20,7 +20,6 @@ TrackModel::TrackModel(const QSqlQuery &query)
     _id = query.value(0).toInt();
     _name = query.value(1).toString();
     _url = QString(query.value(2).toString());
-    qInfo() << "id devia ser: " << query.value(3);
     _playlist_id = query.value(3).toInt();
 }
 

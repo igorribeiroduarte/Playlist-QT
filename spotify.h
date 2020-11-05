@@ -17,7 +17,7 @@ public:
     static Spotify &get_instance();
     static void search_track(const QString &text);
 
-//private:
+private:
     Spotify(QObject *parent = nullptr);
     ~Spotify();
 

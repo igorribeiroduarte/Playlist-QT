@@ -110,7 +110,6 @@ void Spotify::login()
 void Spotify::search_track(const QString &text)
 {
     const QString query = QUrl::toPercentEncoding(text);
-    qInfo() << "query: " << query;
     const QString type = "track";
 
     QVariantMap parameters;

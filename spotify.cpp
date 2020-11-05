@@ -1,7 +1,18 @@
 #include "spotify.h"
 
+#include "trackmodel.h"
+
 #include <QDesktopServices>
 #include <QCryptographicHash>
+#include <QNetworkReply>
+#include <QTimer>
+#include <QEventLoop>
+#include <QtMultimedia/QMediaPlayer>
+#include <future>
+#include <iostream>
+#include <thread>
+#include <QFuture>
+#include <QtConcurrent/QtConcurrent>
 
 std::string Spotify::RandStr(uint32_t size)
 {
@@ -22,7 +33,29 @@ std::string Spotify::RandStr(uint32_t size)
 Spotify::Spotify(QObject *)
 {
     _reply_handler = new QOAuthHttpServerReplyHandler(_port);
+    _auth.setReplyHandler(_reply_handler);
+    _granted = false;
 
+    login();
+
+    QTimer timer;
+    QEventLoop loop;
+    connect(&_auth, &QOAuth2AuthorizationCodeFlow::granted, &loop, &QEventLoop::quit);
+    connect( &timer, &QTimer::timeout, &loop, &QEventLoop::quit);
+    timer.start(1000000);
+    loop.exec();
+
+    connect(_auth.networkAccessManager(), &QNetworkAccessManager::finished, this, &Spotify::generate_track_list);
+    connect(this, &Spotify::search_finished, this, &Spotify::generate_track_list);
+}
+
+Spotify::~Spotify()
+{
+    delete _reply_handler;
+}
+
+void Spotify::login()
+{
     /* The code verifier is a cryptographically random string between 43 and 128 characters in length  */
     const uint8_t min_str_size = 43;
     const uint8_t max_str_size = 128;
@@ -38,12 +71,10 @@ Spotify::Spotify(QObject *)
     _auth.setAuthorizationUrl(_auth_uri);
     _auth.setAccessTokenUrl(_access_token_uri);
     _auth.setClientIdentifier(_client_id);
-    _auth.setScope("user-read-private");
+    _auth.setScope("user-read-private user-top-read playlist-read-private playlist-modify-public playlist-modify-private");
 
-    _auth.setReplyHandler(_reply_handler);
-
-    QObject::connect(&_auth, &QOAuth2AuthorizationCodeFlow::authorizeWithBrowser, QDesktopServices::openUrl);
-    QObject::connect(&_auth, &QOAuth2AuthorizationCodeFlow::granted, this, &Spotify::granted);
+    connect(&_auth, &QOAuth2AuthorizationCodeFlow::authorizeWithBrowser, QDesktopServices::openUrl);
+    connect(&_auth, &QOAuth2AuthorizationCodeFlow::granted, this, &Spotify::granted);
 
     qInfo() << "Callback: " << _reply_handler->callback();
 
@@ -69,12 +100,41 @@ Spotify::Spotify(QObject *)
     /* TODO: Handle errors */
 }
 
-Spotify::~Spotify()
+void Spotify::search_track(const QString &text)
 {
-    delete _reply_handler;
+    const QString query = QUrl::toPercentEncoding(text);
+    qInfo() << "query: " << query;
+    const QString type = "track";
+
+    QVariantMap parameters;
+    parameters.insert("q", query);
+    parameters.insert("type", type);
+
+    _auth.get(QUrl("https://api.spotify.com/v1/search"), parameters);
+}
+
+void Spotify::generate_track_list(QNetworkReply *reply)
+{
+    const uint32_t status_code = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    const uint32_t expected_status_code = 200;
+
+    std::vector<TrackModel> tracks;
+    if (status_code == expected_status_code) {
+        QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
+        QJsonArray track_json_array = doc["tracks"].toObject()["items"].toArray();
+
+        for (const auto &it : track_json_array) {
+            tracks.push_back(TrackModel(it.toObject()));
+        }
+    }
+
+    emit ready_to_populate(tracks);
 }
 
 void Spotify::granted()
 {
     qInfo() << "Granted";
+    _granted = true;
+
+    emit spotify_granted();
 }

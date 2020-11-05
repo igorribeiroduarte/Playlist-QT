@@ -19,3 +19,8 @@ void PlaylistModel::add_track(TrackModel track)
 {
     _tracks.push_back(track);
 }
+
+void PlaylistModel::delete_track(uint32_t id)
+{
+    _tracks.erase(_tracks.begin() + id);
+}

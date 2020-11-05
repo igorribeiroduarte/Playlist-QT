@@ -14,6 +14,7 @@ public:
     const std::vector<TrackModel> tracks();
 
     void add_track(TrackModel track);
+    void delete_track(uint32_t id);
 
 private:
     QString _name;

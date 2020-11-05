@@ -2,6 +2,9 @@
 #include "ui_homepage.h"
 #include "playlistmodel.h"
 #include "search.h"
+#include "spotify.h"
+#include "player.h"
+#include "createplaylist.h"
 
 #include <QResource>
 #include <QDebug>
@@ -27,25 +30,29 @@ HomePage::HomePage(QWidget *parent) :
     playlists.push_back(PlaylistModel("Second"));
     playlists.push_back(PlaylistModel("Third"));
 
-    playlists[0].add_track(TrackModel("First", QUrl("https://p.scdn.co/mp3-preview/3eb16018c2a700240e9dfb8817b6f2d041f15eb1?cid=774b29d4f13844c495f206cafdad9c86")));
-
-    playlists[1].add_track(TrackModel("Second", QUrl("https://p.scdn.co/mp3-preview/d7624ec5f93b6d92c1836a95c40ecce463584f6e?cid=774b29d4f13844c495f206cafdad9c86")));
-    playlists[1].add_track(TrackModel("Third", QUrl("https://p.scdn.co/mp3-preview/4839b070015ab7d6de9fec1756e1f3096d908fba?cid=774b29d4f13844c495f206cafdad9c86")));
-
-    playlists[2].add_track(TrackModel("Fourth", QUrl("https://p.scdn.co/mp3-preview/104ad0ea32356b9f3b2e95a8610f504c90b0026b?cid=774b29d4f13844c495f206cafdad9c86")));
-    playlists[2].add_track(TrackModel("Fifth", QUrl("https://p.scdn.co/mp3-preview/b326e03624cb098d8387e17aa46669edac0d025a?cid=774b29d4f13844c495f206cafdad9c86")));
-
-
-
     populate_left_widget();
 
     connect(ui->add_song_button, &QAbstractButton::clicked, this, &HomePage::open_search_track_page);
+    connect(ui->remove_song_button, &QAbstractButton::clicked, this, &HomePage::remove_track);
+    connect(ui->add_playlist_button, &QAbstractButton::clicked, this, &HomePage::open_create_playlist_page);
     connect(ui->left_widget, &QListWidget::itemClicked, this, &HomePage::set_selected_playlist);
     connect(ui->right_widget, &QListWidget::itemClicked, this, &HomePage::set_selected_song);
 }
 
-int get_playlist_vector_id_from_item_row(int row)
+void HomePage::remove_track(bool)
 {
+    if (_selected_playlist_id && _selected_song_id) {
+        playlists[*_selected_playlist_id].delete_track(*_selected_song_id);
+    }
+
+    _selected_song_id = nullptr;
+
+    populate_right_widget(*_selected_playlist_id);
+}
+
+int HomePage::get_playlist_vector_id_from_item_row(int row)
+{
+   /* It's necessary to decrease by one to eliminate the fixed row (first) */
    return row - 1;
 }
 
@@ -57,7 +64,6 @@ void HomePage::set_selected_playlist(QListWidgetItem *item)
     if (selected_id != 0) {
         _selected_playlist_id = std::make_shared<int>(get_playlist_vector_id_from_item_row(selected_id));
 
-        /* It's necessary to decrease by one to eliminate the fixed row (first) */
         populate_right_widget(*_selected_playlist_id);
     } else {
         _selected_playlist_id = nullptr;
@@ -69,7 +75,8 @@ void HomePage::set_selected_song(QListWidgetItem *item)
     _selected_song_id = std::make_shared<int>(ui->right_widget->row(item));
 
     if (_selected_playlist_id) {
-        play_song(playlists[*_selected_playlist_id].tracks()[*_selected_song_id]);
+        TrackModel track = (playlists[*_selected_playlist_id].tracks()[*_selected_song_id]);
+        Player::play_song(track.url());
     }
 }
 
@@ -93,17 +100,25 @@ void HomePage::populate_right_widget(int selected_playlist)
     }
 }
 
-void HomePage::play_song(TrackModel track)
+void HomePage::open_create_playlist_page(bool)
 {
-    _player.setMedia(track.url());
-    _player.play();
+    CreatePlaylist create_playlist(&playlists);
+    create_playlist.setModal(true);
+    create_playlist.exec();
+
+    populate_left_widget();
 }
 
 void HomePage::open_search_track_page(bool)
 {
-    Search search;
-    search.setModal(true);
-    search.exec();
+    if (_selected_playlist_id) {
+        /* Spotify class should be static */
+        Search search(new Spotify(), &playlists[*_selected_playlist_id]);
+        search.setModal(true);
+        search.exec();
+
+        populate_right_widget(*_selected_playlist_id);
+    }
 }
 
 HomePage::~HomePage()

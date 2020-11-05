@@ -23,6 +23,8 @@ HomePage::HomePage(QWidget *parent) :
 {
     ui->setupUi(this);
 
+    Spotify::get_instance();
+
     test_db();
 
     ui->horizontal_layout->setStretchFactor(ui->left_vertical_layout, 1);
@@ -31,14 +33,6 @@ HomePage::HomePage(QWidget *parent) :
     ui->left_widget->addItem("PLAYLISTS");
     QFont f("Arial", 10, QFont::Bold);
     ui->left_widget->item(0)->setFont(f);
-
-
-    /* FIXME: Remove this after implementing the DB */
-
-
-    playlists.push_back(PlaylistModel("First"));
-    playlists.push_back(PlaylistModel("Second"));
-    playlists.push_back(PlaylistModel("Third"));
 
     populate_left_widget();
 
@@ -153,7 +147,7 @@ void HomePage::open_search_track_page(bool)
         qInfo("first");
 
         if (playlist) {
-            Search search(new Spotify(), playlist);
+            Search search(playlist);
             search.setModal(true);
             search.exec();
         }

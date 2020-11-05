@@ -7,7 +7,7 @@
 
 #include <QUrl>
 
-Search::Search(Spotify *spotify, std::shared_ptr<PlaylistModel> playlist, QWidget *parent) :
+Search::Search(std::shared_ptr<PlaylistModel> playlist, QWidget *parent) :
     QDialog(parent),
     ui(new Ui::Search)
 {
@@ -19,16 +19,14 @@ Search::Search(Spotify *spotify, std::shared_ptr<PlaylistModel> playlist, QWidge
         if (ui->listWidget->currentItem() != nullptr) {
             TrackModel track(ui->listWidget->currentItem()->text(), ui->listWidget->currentItem()->data(Qt::UserRole).value<QUrl>(), playlist->id());
             add_track(track);
-            //playlist->add_track(TrackModel(ui->listWidget->currentItem()->text(), ui->listWidget->currentItem()->data(Qt::UserRole).value<QUrl>()));
             qInfo() << ui->listWidget->currentItem()->text();
         }
     });
 
     connect(ui->listWidget, &QListWidget::itemClicked, [](QListWidgetItem *item) { Player::play_song(item->data(Qt::UserRole).value<QUrl>()); });
 
-
-    connect(ui->lineEdit, &QLineEdit::textChanged, spotify, &Spotify::search_track);
-    connect(spotify, &Spotify::ready_to_populate, this, &Search::populate);
+    connect(ui->lineEdit, &QLineEdit::textChanged, &Spotify::search_track);
+    connect(&Spotify::get_instance(), &Spotify::ready_to_populate, this, &Search::populate);
 }
 
 void Search::populate(std::vector<TrackModel> tracks)

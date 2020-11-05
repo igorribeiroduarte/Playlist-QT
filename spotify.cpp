@@ -14,6 +14,16 @@
 #include <QFuture>
 #include <QtConcurrent/QtConcurrent>
 
+QOAuth2AuthorizationCodeFlow Spotify::_auth;
+QOAuthHttpServerReplyHandler *Spotify::_reply_handler;
+
+bool Spotify::_granted;
+
+const QString Spotify::_auth_uri = "https://accounts.spotify.com/authorize";
+const QString Spotify::_client_id = "e78f9888d48b49668abcc484afc5edab";
+const QString Spotify::_access_token_uri = "https://accounts.spotify.com/api/token";
+const quint16 Spotify::_port = static_cast<quint16>(8080);
+
 std::string Spotify::RandStr(uint32_t size)
 {
     std::string alpha="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-~";
@@ -30,6 +40,13 @@ std::string Spotify::RandStr(uint32_t size)
     return ret;
 }
 
+Spotify &Spotify::get_instance()
+{
+    static Spotify instance;
+
+    return instance;
+}
+
 Spotify::Spotify(QObject *)
 {
     _reply_handler = new QOAuthHttpServerReplyHandler(_port);
@@ -37,16 +54,6 @@ Spotify::Spotify(QObject *)
     _granted = false;
 
     login();
-
-    QTimer timer;
-    QEventLoop loop;
-    connect(&_auth, &QOAuth2AuthorizationCodeFlow::granted, &loop, &QEventLoop::quit);
-    connect( &timer, &QTimer::timeout, &loop, &QEventLoop::quit);
-    timer.start(1000000);
-    loop.exec();
-
-    connect(_auth.networkAccessManager(), &QNetworkAccessManager::finished, this, &Spotify::generate_track_list);
-    connect(this, &Spotify::search_finished, this, &Spotify::generate_track_list);
 }
 
 Spotify::~Spotify()
@@ -74,11 +81,11 @@ void Spotify::login()
     _auth.setScope("user-read-private user-top-read playlist-read-private playlist-modify-public playlist-modify-private");
 
     connect(&_auth, &QOAuth2AuthorizationCodeFlow::authorizeWithBrowser, QDesktopServices::openUrl);
-    connect(&_auth, &QOAuth2AuthorizationCodeFlow::granted, this, &Spotify::granted);
+    connect(&_auth, &QOAuth2AuthorizationCodeFlow::granted, &Spotify::granted);
 
     qInfo() << "Callback: " << _reply_handler->callback();
 
-    _auth.setModifyParametersFunction([this, code_verifier, code_challenge](QAbstractOAuth::Stage stage, QVariantMap* parameters) {
+    _auth.setModifyParametersFunction([code_verifier, code_challenge](QAbstractOAuth::Stage stage, QVariantMap* parameters) {
             if (stage == QAbstractOAuth::Stage::RequestingAccessToken)
             {
                 if (parameters->toStdMap().find("code") != parameters->toStdMap().end()) {
@@ -90,14 +97,14 @@ void Spotify::login()
             if (stage == QAbstractOAuth::Stage::RequestingAuthorization) {
                 qInfo() << "Requesting authorization";
 
-                parameters->insert("code_challenge_method", this->_code_challenge_method);
+                const QString code_challenge_method = "S256";
+
+                parameters->insert("code_challenge_method", code_challenge_method);
                 parameters->insert("code_challenge", code_challenge);
             }
         });
 
     _auth.grant();
-
-    /* TODO: Handle errors */
 }
 
 void Spotify::search_track(const QString &text)
@@ -128,7 +135,7 @@ void Spotify::generate_track_list(QNetworkReply *reply)
         }
     }
 
-    emit ready_to_populate(tracks);
+    emit Spotify::get_instance().ready_to_populate(tracks);
 }
 
 void Spotify::granted()
@@ -136,5 +143,5 @@ void Spotify::granted()
     qInfo() << "Granted";
     _granted = true;
 
-    emit spotify_granted();
+    connect(_auth.networkAccessManager(), &QNetworkAccessManager::finished, &Spotify::generate_track_list);
 }

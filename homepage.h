@@ -24,16 +24,11 @@ private:
 
     QMediaPlayer _player;
 
-    /* FIXME: Temp var. Remove it after adding database */
-    std::vector<PlaylistModel> playlists;
-
     std::shared_ptr<int> _selected_playlist_id;
     std::shared_ptr<int> _selected_song_id;
 
     void populate_left_widget();
     void populate_right_widget(int selected_playlist);
-
-    void test_db();
 
 private slots:
     void remove_track(bool);

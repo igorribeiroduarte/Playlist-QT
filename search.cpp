@@ -3,7 +3,7 @@
 
 #include "player.h"
 #include "spotify.h"
-#include "init_db.h"
+#include "databaseutil.h"
 
 #include <QUrl>
 
@@ -18,7 +18,7 @@ Search::Search(std::shared_ptr<PlaylistModel> playlist, QWidget *parent) :
     connect(ui->commandLinkButton, &QCommandLinkButton::clicked, this, [this, playlist](bool){
         if (ui->listWidget->currentItem() != nullptr) {
             TrackModel track(ui->listWidget->currentItem()->text(), ui->listWidget->currentItem()->data(Qt::UserRole).value<QUrl>(), playlist->id());
-            add_track(track);
+            DatabaseUtil::add_track(track);
             qInfo() << ui->listWidget->currentItem()->text();
         }
     });

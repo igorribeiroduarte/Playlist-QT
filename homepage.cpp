@@ -6,7 +6,7 @@
 #include "player.h"
 #include "createplaylist.h"
 
-#include "init_db.h"
+#include "databaseutil.h"
 
 #include <QResource>
 #include <QDebug>
@@ -25,8 +25,6 @@ HomePage::HomePage(QWidget *parent) :
 
     Spotify::get_instance();
 
-    test_db();
-
     ui->horizontal_layout->setStretchFactor(ui->left_vertical_layout, 1);
     ui->horizontal_layout->setStretchFactor(ui->right_vertical_layout, 4);
 
@@ -44,21 +42,10 @@ HomePage::HomePage(QWidget *parent) :
     connect(ui->right_widget, &QListWidget::itemClicked, this, &HomePage::set_selected_song);
 }
 
-void HomePage::test_db()
-{
-    qInfo("ue");
-    QSqlError err = init_db();
-    qInfo("depois");
-
-    if (err.type() != QSqlError::NoError) {
-        qInfo() << "Erro: " << err.text();
-    }
-}
-
 void HomePage::remove_track(bool)
 {
     if (_selected_playlist_id && _selected_song_id) {
-        delete_track(*_selected_song_id);
+        DatabaseUtil::get_instance().delete_track(*_selected_song_id);
     }
 
     _selected_song_id = nullptr;
@@ -69,7 +56,7 @@ void HomePage::remove_track(bool)
 void HomePage::remove_playlist(bool)
 {
     if (_selected_playlist_id) {
-        delete_playlist(*_selected_playlist_id);
+        DatabaseUtil::get_instance().delete_playlist(*_selected_playlist_id);
     }
 
     _selected_playlist_id = nullptr;
@@ -96,7 +83,7 @@ void HomePage::set_selected_song(QListWidgetItem *item)
     _selected_song_id = std::make_shared<int>(item->data(Qt::UserRole).value<int>());
 
     if (_selected_playlist_id) {
-        std::shared_ptr<TrackModel> track = get_track(*_selected_song_id);
+        std::shared_ptr<TrackModel> track = DatabaseUtil::get_instance().get_track(*_selected_song_id);
 
         if (track) {
             Player::play_song(track->url());
@@ -111,7 +98,7 @@ void HomePage::populate_left_widget()
     QFont f("Arial", 10, QFont::Bold);
     ui->left_widget->item(0)->setFont(f);
 
-    for (auto it : get_playlists()) {
+    for (auto it : DatabaseUtil::get_instance().get_playlists()) {
         QListWidgetItem *item = new QListWidgetItem(it.name());
         item->setData(Qt::UserRole, it.id());
         ui->left_widget->addItem(item);
@@ -122,7 +109,7 @@ void HomePage::populate_right_widget(int selected_playlist)
 {
     ui->right_widget->clear();
 
-    for (auto it : get_tracks(selected_playlist)) {
+    for (auto it : DatabaseUtil::get_instance().get_tracks(selected_playlist)) {
         QListWidgetItem *item = new QListWidgetItem(it.name());
         item->setData(Qt::UserRole, it.id());
         ui->right_widget->addItem(item);
@@ -142,7 +129,7 @@ void HomePage::open_search_track_page(bool)
 {
     if (_selected_playlist_id) {
         /* FIXME: Spotify class should be static */
-        std::shared_ptr<PlaylistModel> playlist = get_playlist(*_selected_playlist_id);
+        std::shared_ptr<PlaylistModel> playlist = DatabaseUtil::get_instance().get_playlist(*_selected_playlist_id);
 
         qInfo("first");
 

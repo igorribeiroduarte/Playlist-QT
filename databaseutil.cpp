@@ -1,39 +1,64 @@
-#ifndef INIT_DB_H
-#define INIT_DB_H
+#include "databaseutil.h"
 
-#include <QtSql>
-#include <QSqlTableModel>
-
-#include "trackmodel.h"
-#include "playlistmodel.h"
-
-const auto PLAYLISTS_SQL =  QLatin1String(R"(
+const QLatin1String DatabaseUtil::PLAYLISTS_SQL =  QLatin1String(R"(
     create table playlists(id integer primary key, name varchar)
     )");
 
-const auto TRACKS_SQL = QLatin1String(R"(
+const QLatin1String DatabaseUtil::TRACKS_SQL = QLatin1String(R"(
     create table tracks(id integer primary key, name varchar,  url varchar, playlist integer, FOREIGN KEY (playlist) REFERENCES playlists(id) ON DELETE CASCADE)
     )");
 
-const auto INSERT_TRACK_SQL = QLatin1String(R"(
+const QLatin1String DatabaseUtil::INSERT_TRACK_SQL = QLatin1String(R"(
     insert into tracks(name, url, playlist) values(?, ?, ?)
     )");
 
 
-const auto INSERT_PLAYLIST_SQL = QLatin1String(R"(
+const QLatin1String DatabaseUtil::INSERT_PLAYLIST_SQL = QLatin1String(R"(
     insert into playlists(name) values(?)
     )");
 
 
-const auto SELECT_PLAYLIST_SQL = QLatin1String(R"(
+const QLatin1String DatabaseUtil::SELECT_PLAYLIST_SQL = QLatin1String(R"(
     select * from playlists
     )");
 
-static void add_playlist(PlaylistModel playlist)
+DatabaseUtil &DatabaseUtil::get_instance()
 {
+    static DatabaseUtil instance;
+
+    return instance;
+}
+
+DatabaseUtil::DatabaseUtil()
+{
+    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
+    db.setDatabaseName("spotify_testing");
+
+    if (!db.open()) {
+        return;
+    }
+
+    QStringList tables = db.tables();
     QSqlQuery q;
 
-    qInfo() << "entrei";
+    q.exec("PRAGMA foreign_keys=ON");
+
+    if (!tables.contains("playlists")) {
+        if (!q.exec(PLAYLISTS_SQL)){
+            return;
+        }
+    }
+
+    if (!tables.contains("tracks")) {
+        if (!q.exec(TRACKS_SQL)){
+            return;
+        }
+    }
+}
+
+void DatabaseUtil::add_playlist(PlaylistModel playlist)
+{
+    QSqlQuery q;
 
     if (!q.prepare(INSERT_PLAYLIST_SQL)) {
         return;
@@ -44,11 +69,9 @@ static void add_playlist(PlaylistModel playlist)
     q.exec();
 }
 
-static void add_track(TrackModel track)
+void DatabaseUtil::add_track(TrackModel track)
 {
     QSqlQuery q;
-
-    qInfo() << "entrei";
 
     if (!q.prepare(INSERT_TRACK_SQL)) {
         return;
@@ -61,7 +84,7 @@ static void add_track(TrackModel track)
     q.exec();
 }
 
-static std::vector<PlaylistModel> get_playlists()
+std::vector<PlaylistModel> DatabaseUtil::get_playlists()
 {
     QSqlQuery q;
     q.exec(SELECT_PLAYLIST_SQL);
@@ -76,7 +99,7 @@ static std::vector<PlaylistModel> get_playlists()
     return playlists;
 }
 
-static std::vector<TrackModel> get_tracks(uint32_t playlist_id)
+std::vector<TrackModel> DatabaseUtil::get_tracks(uint32_t playlist_id)
 {
     QSqlQuery q;
     q.exec(("select * from tracks where playlist=" + std::to_string(playlist_id)).c_str());
@@ -90,7 +113,7 @@ static std::vector<TrackModel> get_tracks(uint32_t playlist_id)
     return tracks;
 }
 
-static std::shared_ptr<TrackModel> get_track(uint32_t id)
+std::shared_ptr<TrackModel> DatabaseUtil::get_track(uint32_t id)
 {
     QSqlQuery q;
     q.exec(("select * from tracks where id=" + std::to_string(id)).c_str());
@@ -102,7 +125,7 @@ static std::shared_ptr<TrackModel> get_track(uint32_t id)
     return nullptr;
 }
 
-static std::shared_ptr<PlaylistModel> get_playlist(uint32_t id)
+std::shared_ptr<PlaylistModel> DatabaseUtil::get_playlist(uint32_t id)
 {
     QSqlQuery q;
     q.exec(("select * from playlists where id=" + std::to_string(id)).c_str());
@@ -114,44 +137,14 @@ static std::shared_ptr<PlaylistModel> get_playlist(uint32_t id)
     return nullptr;
 }
 
-static void delete_playlist(uint32_t id)
+void DatabaseUtil::delete_playlist(uint32_t id)
 {
     QSqlQuery q;
     q.exec(("delete from playlists where id=" + std::to_string(id)).c_str());
 }
 
-static void delete_track(uint32_t id)
+void DatabaseUtil::delete_track(uint32_t id)
 {
     QSqlQuery q;
     q.exec(("delete from tracks where id=" + std::to_string(id)).c_str());
 }
-
-static QSqlError init_db()
-{
-    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
-    db.setDatabaseName("uafe2");
-
-    if (!db.open())
-        return db.lastError();
-
-    QStringList tables = db.tables();
-    QSqlQuery q;
-
-    q.exec("PRAGMA foreign_keys=ON");
-
-    if (!tables.contains("playlists")) {
-        if (!q.exec(PLAYLISTS_SQL)){
-            return q.lastError();
-        }
-    }
-
-    if (!tables.contains("tracks")) {
-        if (!q.exec(TRACKS_SQL)){
-            return q.lastError();
-        }
-    }
-
-    return QSqlError();
-}
-
-#endif // INIT_DB_H

@@ -1,6 +1,6 @@
 #include "createplaylist.h"
 #include "ui_createplaylist.h"
-#include "init_db.h"
+#include "databaseutil.h"
 
 CreatePlaylist::CreatePlaylist(QWidget *parent) :
     QDialog(parent),
@@ -14,7 +14,7 @@ CreatePlaylist::CreatePlaylist(QWidget *parent) :
 void CreatePlaylist::create(bool)
 {
     if (ui->lineEdit->text().size() != 0) {
-        add_playlist(PlaylistModel(ui->lineEdit->text()));
+        DatabaseUtil::add_playlist(PlaylistModel(ui->lineEdit->text()));
         close();
     }
 }

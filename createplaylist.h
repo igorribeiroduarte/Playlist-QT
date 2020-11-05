@@ -14,12 +14,11 @@ class CreatePlaylist : public QDialog
     Q_OBJECT
 
 public:
-    explicit CreatePlaylist(std::vector<PlaylistModel> *playlists, QWidget *parent = nullptr);
+    explicit CreatePlaylist(QWidget *parent = nullptr);
     ~CreatePlaylist();
 
 private:
     Ui::CreatePlaylist *ui;
-    std::vector<PlaylistModel> *_playlist_ptr;
 
 private slots:
     void create(bool);

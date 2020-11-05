@@ -9,7 +9,9 @@ class PlaylistModel
 {
 public:
     PlaylistModel(QString playlist_name);
+    PlaylistModel(const QSqlQuery &query);
 
+    quint32 id();
     const QString name();
     const std::vector<TrackModel> tracks();
 
@@ -17,6 +19,7 @@ public:
     void delete_track(uint32_t id);
 
 private:
+    quint32 _id;
     QString _name;
     std::vector<TrackModel> _tracks;
 };

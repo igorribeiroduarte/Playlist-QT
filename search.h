@@ -18,7 +18,7 @@ class Search : public QDialog
     Q_OBJECT
 
 public:
-    explicit Search(Spotify *spotify, PlaylistModel *playlist, QWidget *parent = nullptr);
+    explicit Search(Spotify *spotify, std::shared_ptr<PlaylistModel> playlist, QWidget *parent = nullptr);
     ~Search();
 
 private:

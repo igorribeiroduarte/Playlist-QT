@@ -2,7 +2,19 @@
 
 PlaylistModel::PlaylistModel(QString playlist_name)
 {
+    _id = 0;
     _name = playlist_name;
+}
+
+PlaylistModel::PlaylistModel(const QSqlQuery &query)
+{
+    _id = query.value(0).toInt();
+    _name = query.value(1).toString();
+}
+
+quint32 PlaylistModel::id()
+{
+    return _id;
 }
 
 const QString PlaylistModel::name()

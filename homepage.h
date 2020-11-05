@@ -30,13 +30,14 @@ private:
     std::shared_ptr<int> _selected_playlist_id;
     std::shared_ptr<int> _selected_song_id;
 
-    int get_playlist_vector_id_from_item_row(int row);
-
     void populate_left_widget();
     void populate_right_widget(int selected_playlist);
 
+    void test_db();
+
 private slots:
     void remove_track(bool);
+    void remove_playlist(bool);
     void open_create_playlist_page(bool);
     void open_search_track_page(bool checked);
     void set_selected_playlist(QListWidgetItem *item);

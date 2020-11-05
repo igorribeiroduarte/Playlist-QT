@@ -3,10 +3,11 @@
 
 #include "player.h"
 #include "spotify.h"
+#include "init_db.h"
 
 #include <QUrl>
 
-Search::Search(Spotify *spotify, PlaylistModel *playlist, QWidget *parent) :
+Search::Search(Spotify *spotify, std::shared_ptr<PlaylistModel> playlist, QWidget *parent) :
     QDialog(parent),
     ui(new Ui::Search)
 {
@@ -14,9 +15,11 @@ Search::Search(Spotify *spotify, PlaylistModel *playlist, QWidget *parent) :
 
     ui->commandLinkButton->setText("Add song to playlist " + playlist->name());
 
-    connect(ui->commandLinkButton, &QCommandLinkButton::clicked, this, [this, playlist](bool checked){
+    connect(ui->commandLinkButton, &QCommandLinkButton::clicked, this, [this, playlist](bool){
         if (ui->listWidget->currentItem() != nullptr) {
-            playlist->add_track(TrackModel(ui->listWidget->currentItem()->text(), ui->listWidget->currentItem()->data(Qt::UserRole).value<QUrl>()));
+            TrackModel track(ui->listWidget->currentItem()->text(), ui->listWidget->currentItem()->data(Qt::UserRole).value<QUrl>(), playlist->id());
+            add_track(track);
+            //playlist->add_track(TrackModel(ui->listWidget->currentItem()->text(), ui->listWidget->currentItem()->data(Qt::UserRole).value<QUrl>()));
             qInfo() << ui->listWidget->currentItem()->text();
         }
     });
@@ -40,5 +43,6 @@ void Search::populate(std::vector<TrackModel> tracks)
 
 Search::~Search()
 {
+    Player::stop_song();
     delete ui;
 }

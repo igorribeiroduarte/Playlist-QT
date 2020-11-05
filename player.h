@@ -10,6 +10,7 @@ public:
     Player();
 
     static void play_song(QUrl song);
+    static void stop_song();
 
 private:
     static QMediaPlayer player;
